@@ -1,0 +1,179 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Expense-Tracker</title>
+	<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.2.0/css/bootstrap.min.css">
+	
+</head>
+<body>
+	<div class="container">
+	<h1>Expenses</h1>
+	<hr/>
+	<div class="page"></div>
+	</div>
+
+	<script type="text/template" id="expense-list-template">
+	<a href="#/new" class="btn btn-primary">Add Expense</a>
+	<hr/>
+	<table class="table striped">
+	<thead>
+		<tr>
+			<th>Expense Name</th>
+			<th>Amount</th>
+			<th>Category</th>
+			<th></th>
+		</tr>
+	</thead>
+	<tbody>
+		<% _.each(expenses, function(expense) { %>
+			<tr>
+				<td><%= expense.get('name') %></td>
+				<td><%= expense.get('amount') %></td>
+				<td><%= expense.get('category') %></td>
+				<td><a href="#/edit/<%= expense.get('_id') %>" class="btn">Edit</a></td>
+			</tr>
+		<% }); %>
+	</tbody>
+	</table>
+	</script>
+
+	<script type="text/template" id="edit-expense-template">
+	<form class="edit-user-form">
+	<legend><%= expense ? 'Update ' : 'Add ' %>Expense</legend>
+	<label>Expense Name</label>
+	<input type="text" class="form-control" name="name"  value="<%= expense ?  expense.get('name') : '' %>"/>
+	<label>Amount</label>
+	<input type="text" class="form-control" name="amount" value="<%= expense ?  expense.get('amount') : '' %>" />
+	<label>Category</label>
+	<input type="text" class="form-control" name="category" value="<%= expense ?  expense.get('category') : '' %>" />
+	<hr/>
+	<button type="submit" class="btn"><%= expense ? 'Update' : 'Add' %></button>
+	<% if(expense) { %>
+		<input type="hidden" name="id" value="<%= expense.get('_id') %>" />
+		<button class="btn btn-danger delete">Delete</button>  
+	<% }; %>
+	
+	</form>
+	</script>
+
+
+	<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+	<script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min.js"></script>
+	<script src="//cdnjs.cloudflare.com/ajax/libs/backbone.js/1.1.2/backbone-min.js"></script>
+	<script>
+	//Serialize form input to JSON
+	    $.fn.serializeObject = function()
+	    {
+	        var o = {};
+	        var a = this.serializeArray();
+	        $.each(a, function() {
+	            if (o[this.name] !== undefined) {
+	                if (!o[this.name].push) {
+	                    o[this.name] = [o[this.name]];
+	                }
+	                o[this.name].push(this.value || '');
+	            } else {
+	                o[this.name] = this.value || '';
+	            }
+	        });
+	        return o;
+	    };
+
+
+	var Expenses = Backbone.Collection.extend({
+		url : '/expenses'
+	});
+
+	var Expense = Backbone.Model.extend({
+		urlRoot : '/expenses'
+	});
+
+	var ExpenseList = Backbone.View.extend({
+		el: '.page',
+		render : function(){
+			var expenses = new Expenses();
+			var that = this;
+			expenses.fetch({
+				success : function(expenses){
+			            var template = _.template($('#expense-list-template').html(), {expenses: expenses.models});		
+				that.$el.html(template);	
+				}
+			});
+			
+		}
+	});
+
+	var EditExpense = Backbone.View.extend({
+		el : '.page',
+		render : function(options){
+			var that = this;
+			if(options.id){
+				that.expense = new Expense({id: options.id});
+				that.expense.fetch({
+					success : function(expense){
+						var template = _.template($('#edit-expense-template').html(), {expense : expense});		
+						that.$el.html(template);
+					}
+				})
+			}
+			else {
+			var template = _.template($('#edit-expense-template').html(), {expense : null});		
+				this.$el.html(template);	
+			}
+		},
+		events : {
+			'submit .edit-user-form' : 'saveExpense',
+			'click .delete' : 'deleteExpense'
+		},
+		saveExpense : function(ev){
+			var expenseDetails = $(ev.currentTarget).serializeObject();
+			console.log(expenseDetails);
+			var expense = new Expense();
+			expense.save(expenseDetails, {
+				// success : function(expense){
+				// 	router.navigate('', {trigger:true});
+				// }
+			})
+			router.navigate('', {trigger:true});
+			return false;
+		},
+		deleteExpense : function(ev){
+			this.expense.destroy({
+				success : function() {
+				router.navigate('', {trigger:true});	
+				}
+			})
+			return false;
+		}
+	});
+
+
+
+
+	var Router = Backbone.Router.extend({
+		routes : {
+		   '' : 'home',
+		   'new' : 'editExpense', 
+		    'edit/:id' : 'editExpense'
+		}
+	});
+	var expenseList = new ExpenseList();
+	var editExpense = new EditExpense();
+
+	var router = new Router();
+	router.on('route:home', function(){
+		expenseList.render();
+	});
+
+	router.on('route:editExpense', function(id){
+		editExpense.render({id : id});
+	});
+	Backbone.history.start();
+
+
+
+
+	</script>
+</body>
+</html>
