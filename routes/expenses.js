@@ -14,7 +14,7 @@ db.open(function(err,db){
 		db.collection('expenses', {strict : true}, function(err,collection){
 			if(err){
 				console.log('The expenses collection does not exist, creating it');
-				//populateDB();
+				populateDB();
 			}
 		});
 	}
